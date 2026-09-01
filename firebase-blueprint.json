@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role, contact info, ratings, and location",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["FARMER", "LABOUR_LEADER"] },
+        "profilePhoto": { "type": "string" },
+        "rating": { "type": "number" },
+        "currentLocation": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          },
+          "required": ["latitude", "longitude"]
+        },
+        "isOnline": { "type": "boolean" },
+        "teamSize": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "name", "role", "createdAt"]
+    },
+    "JobPost": {
+      "title": "JobPost",
+      "description": "Agricultural job postings created by farmers",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "farmerId": { "type": "string" },
+        "taskType": { "type": "string" },
+        "workersCountNeeded": { "type": "number" },
+        "wagePerDay": { "type": "number" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          },
+          "required": ["latitude", "longitude"]
+        },
+        "address": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["SEARCHING", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+        },
+        "assignedLeaderId": { "type": "string" },
+        "etaMinutes": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["jobId", "farmerId", "taskType", "workersCountNeeded", "wagePerDay", "location", "status", "createdAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Job fulfillment booking confirmation with OTP and payment status",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "farmerId": { "type": "string" },
+        "labourLeaderId": { "type": "string" },
+        "OTP": { "type": "string" },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["PENDING", "PAID_CASH", "PAID_UPI"]
+        },
+        "startedAt": { "type": "number" },
+        "completedAt": { "type": "number" }
+      },
+      "required": ["bookingId", "jobId", "farmerId", "labourLeaderId", "OTP", "paymentStatus"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with role isolation and location state"
+    },
+    "/jobs/{jobId}": {
+      "schema": "JobPost",
+      "description": "Hyperlocal farm job postings"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Verified farm labor bookings with OTP workflow"
+    }
+  }
+}

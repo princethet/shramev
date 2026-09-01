@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // -------------------------------------------------------------
+    // 1. users/ Collection: User Profile Isolation
+    // -------------------------------------------------------------
+    match /users/{userId} {
+      // Authenticated users can read their own profile, or read public labour profiles
+      allow read: if isAuthenticated();
+      // Users can only create and update their own document
+      allow write: if isOwner(userId);
+    }
+
+    // -------------------------------------------------------------
+    // 2. jobs/ Collection: Hyperlocal Job Postings
+    // -------------------------------------------------------------
+    match /jobs/{jobId} {
+      // Read access:
+      // - Authenticated users can read active searching jobs
+      // - Or the farmer who created the job
+      // - Or the assigned labour leader
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        resource.data.status == "SEARCHING" ||
+        resource.data.farmerId == request.auth.uid ||
+        resource.data.assignedLeaderId == request.auth.uid
+      );
+
+      // Create access:
+      // - Only authenticated users creating a job where farmerId equals their UID
+      allow create: if isAuthenticated() && 
+                    request.resource.data.farmerId == request.auth.uid &&
+                    request.resource.data.status == "SEARCHING";
+
+      // Update access:
+      // - Farmer can update their own job posting
+      // - OR a Labour Leader can accept a job ONLY IF it is currently in "SEARCHING" status
+      allow update: if isAuthenticated() && (
+        // Case A: The Farmer who owns the job is updating it
+        (resource.data.farmerId == request.auth.uid) ||
+        // Case B: A Labour Leader is accepting the job when currently SEARCHING
+        (
+          resource.data.status == "SEARCHING" &&
+          request.resource.data.status == "ACCEPTED" &&
+          request.resource.data.assignedLeaderId == request.auth.uid
+        ) ||
+        // Case C: The assigned Labour Leader updating work state (IN_PROGRESS, COMPLETED)
+        (resource.data.assignedLeaderId == request.auth.uid)
+      );
+
+      // Delete access:
+      // - Only the owner farmer can delete their job posting
+      allow delete: if isAuthenticated() && resource.data.farmerId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------
+    // 3. bookings/ Collection: Verified Bookings & OTP Workflow
+    // -------------------------------------------------------------
+    match /bookings/{bookingId} {
+      // Read access: Only the involved farmer or labour leader
+      allow read: if isAuthenticated() && (
+        resource.data.farmerId == request.auth.uid ||
+        resource.data.labourLeaderId == request.auth.uid
+      );
+
+      // Create access: Either the farmer or labour leader involved in the booking
+      allow create: if isAuthenticated() && (
+        request.resource.data.farmerId == request.auth.uid ||
+        request.resource.data.labourLeaderId == request.auth.uid
+      );
+
+      // Update access: Only the involved farmer or labour leader
+      allow update: if isAuthenticated() && (
+        resource.data.farmerId == request.auth.uid ||
+        resource.data.labourLeaderId == request.auth.uid
+      );
+
+      // Delete access: Only the farmer who initiated the job
+      allow delete: if isAuthenticated() && resource.data.farmerId == request.auth.uid;
+    }
+  }
+}

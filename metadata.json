@@ -1,0 +1,6 @@
+{
+  "name": "श्रमेव (Shramev) - Rural Agricultural Labour Platform",
+  "description": "Real-time hyper-local platform connecting Indian farmers with manual agricultural labourers within a 2-4 km radius with voice commands and visual icons.",
+  "requestFramePermissions": ["geolocation", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
